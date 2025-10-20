@@ -64,8 +64,10 @@
 
 ## Výrazy
 
-- TScript podporuje základní aritmetické operace pro čísla: sčítání (`+`), odčítání (`-`), násobení (`*`), dělení (`/`), modulo (`%`).
-- Podporuje také logické operace: AND (`&&`), OR (`||`), NOT (`!`).
+- TScript podporuje základní aritmetické operace pro čísla: sčítání (`+`), odčítání (`-`), násobení (`*`), dělení (`/`), modulo (`%`), celosčíslené dělení (`//`), umocnění (`^`);.
+- Podporuje také logické operace: AND (`AND` nebo `&&`), OR (`OR` nebo `||`), NOT ( `NOT` nebo `!`), XOR (`XOR`).
+- Podporuje bitové operace: AND (`BAND` nebo `&`), OR (`BOR` nebo `|`), XOR (`BXOR`), NOT (`BNOT` nebo `~`), posun vlevo (`<<`), posun vpravo (`>>`).
+- Podporuje zřetězení řetězců pomocí operátoru `+`.
 - Podporuje relační operátory pro porovnání čísel a řetězců: rovnost (`==`), nerovnost (`!=`), větší než (`>`), menší než (`<`), větší nebo rovno (`>=`), menší nebo rovno (`<=`).
 - Výrazy mohou být kombinovány a mohou obsahovat závorky pro určení precedence.
 - Příklad výrazu: `result = (variable1 + 10) * 2 - variable2 / 5`
@@ -91,6 +93,16 @@
 - Proměnné definované uvnitř bloku kódu jsou lokální pro tento blok.
 - Objekty, řetězce, pole a slovníky existují pouze v bloku a na konci práce s blokem jsou uvolněny z paměti.
 
+### Bloky kódu s podmínkou
+
+- Podmíněné bloky kódu začínají slovem `IF` a končí slovem `END` nebo `END IF`.
+- Podmíněné bloky kódu mohou obsahovat volitelné větve `ELSE IF` a `ELSE`.
+- Kompletní příkaz syntaxe pro podmíněný blok kódu:
+  - `IF (condition) ... [ELSE IF (condition) ...] [ELSE ...] END [IF]`.
+- Jako podmínka se používá výraz může být výraz obsahující porovnávací a logické operátory.
+- Proměnné definované uvnitř bloku kódu jsou lokální pro tento blok.
+- Objekty, řetězce, pole a slovníky existují pouze v bloku a na konci práce s blokem jsou uvolněny z paměti.
+
 ## Blok iterací
 
 - Prvním typem iterací je prosté počítadlo.
@@ -113,8 +125,60 @@
 - Proměnné definované uvnitř bloku iterací jsou lokální pro tento blok.
 - Objekty, řetězce, pole a slovníky existují pouze v bloku iterace a při každé iteraci jsou znovu vytvořeny.
 
+## Blok výběru
+
+- Bloky výběru začínají slovem `SELECT` a končí slovem `END` nebo `END SELECT`.
+- Bloky výběru obsahují jednu nebo více větví `CASE` a volitelnou větev `DEFAULT`.
+- CASE může obsahovat jeden nebo více hodnot oddělených čárkou.
+- Podmínkou CASE může být hodnota:
+  - Příklad číslo: `CASE 1, 2, 3`
+  - Příklad řetězec: `CASE "A", "B", "C"`
+- Podmínkou CASE může být rozsah hodnot pomocí operátoru `TO` (pouze pro čísla):
+  - Příklad číslo: `CASE 1 TO 10`
+- Podmínkou CASE může být i porovnání pomocí relačních operátorů:
+  - Příklad číslo: `CASE > 100`
+  - Příklad číslo: `CASE <= 50`
+- Pokud hodnota výrazu odpovídá některé z hodnot v CASE, vykoná se odpovídající blok kódu.
+- Pokud žádná hodnota neodpovídá a je přítomna větev DEFAULT, vykoná se blok kódu v DEFAULT.
+- Kód vybraný klauzulí CASE nebo DEFAULT končí na dalším CASE, DEFAULT nebo na END.
+- Kompletní příkaz syntaxe pro blok výběru:
+  - `SELECT variable ... [CASE expr1 ...] [CASE expr2 ...] ... [DEFAULT ...] END [SELECT]`.
+- Proměnné definované uvnitř bloku výběru jsou lokální pro tento blok.
+- Objekty, řetězce, pole a slovníky existují pouze v bloku a na konci práce s blokem jsou uvolněny z paměti.
+
+## Výraz výběru
+
+- TScript podporuje výraz výběru pomocí klíčového slova `SWITCH`.
+- Výraz výběru začíná slovem `SWITCH` a končí slovem `END` nebo `END SWITCH`.
+- Varianta výrazu výběru používá klíčová slova `BY` pro určení proměnné nebo výrazu, který se porovnává s hodnotami v jednotlivých větvích.
+- Každá větev začíná podmínkou následovanou operátorem `=>` a blokem kódu, který se vykoná, pokud podmínka platí.
+- Každá podmínka může být:
+  - Jedna nebo více hodnot oddělených čárkou.
+    - Příklad číslo: `1, 2, 3 => ...`
+    - Příklad řetězec: `"A", "B", "C" => ...`
+  - Rozsah hodnot pomocí operátoru `TO` (pouze pro čísla).
+    - Příklad číslo: `1 TO 10 => ...`
+  - Porovnání pomocí relačních operátorů.
+    - Příklad číslo: `> 100 => ...`
+    - Příklad číslo: `<= 50 => ...`
+  - Každá podmínk a odpovídající hodnota je v jednom řádku.
+- Pokud hodnota výrazu odpovídá některé z hodnot v podmínkách, vykoná se odpovídající blok kódu za oddělovacím operátorem `=>`.
+- Příklad použití:
+
+  ``` TScript
+    SWITCH dest BY source
+      -1,-2=> "Záporné číslo"
+      0=> "Nula"
+      1=> "Jedna" 
+      2=> "Dva"
+      3 TO 5=> "Tři až pět"
+      >5=> "Víc než pět" 
+      DEFAULT=> "Jiné" 
+    END SWITCH
+  ```
+
+
 ## Komentáře
 
-- Podporuje pouze jedřádkové komentáře začínající křížkem `#`:
+- Podporuje pouze jednořádkové komentáře začínající křížkem `#`:
   - Příklad: `# Toto je komentář`
-
