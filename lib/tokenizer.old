@@ -175,10 +175,14 @@ class TsTokenizer {
         isContinuation = firstToken.column == 1 && 
                         firstToken.text == '+' && 
                         firstToken.type == TsTokenType.operator;
+        if (isContinuation) {
+          // Odstranit první token +
+          line.tokens.removeAt(0);
+        }
       }
 
       if (isContinuation && result.isNotEmpty) {
-        // Přidat tokeny k předchozímu řádku (včetně tokenu +)
+        // Přidat tokeny k předchozímu řádku
         mergedTokens.addAll(line.tokens);
       } else {
         // Uložit předchozí sloučený řádek
@@ -216,24 +220,9 @@ class TsTokenizer {
 
     var ch = _peek();
 
-    // Řetězce - kontrola na trojité uvozovky nejdříve
-    if (ch == "'" && _pos + 2 < _source.length && 
-        _source[_pos + 1] == "'" && _source[_pos + 2] == "'") {
-      return _readTripleSingleQuoteString(tokenLine, tokenColumn);
-    }
-    
-    if (ch == '"' && _pos + 2 < _source.length && 
-        _source[_pos + 1] == '"' && _source[_pos + 2] == '"') {
-      return _readTripleDoubleQuoteString(tokenLine, tokenColumn);
-    }
-    
-    // Jednoduché řetězce
-    if (ch == "'") {
-      return _readSingleQuoteString(tokenLine, tokenColumn);
-    }
-    
-    if (ch == '"') {
-      return _readDoubleQuoteString(tokenLine, tokenColumn);
+    // Řetězce
+    if (ch == '"' || ch == "'") {
+      return _readString(tokenLine, tokenColumn);
     }
 
     // Čísla
@@ -256,15 +245,13 @@ class TsTokenizer {
     return _readOperator(tokenLine, tokenColumn);
   }
 
-  /// Přečte jednořádkový řetězec s jednoduchými uvozovkami (podporuje escape sekvence)
-  /// Typ 1: '...' - jednořádkový s escape sekvencemi včetně Unicode
-  TsToken _readSingleQuoteString(int tokenLine, int tokenColumn) {
-    var text = '';
+  /// Přečte řetězec
+  TsToken _readString(int tokenLine, int tokenColumn) {
+    var quote = _advance();
+    var text = quote;
     var value = StringBuffer();
     
-    text += _advance(); // úvodní '
-    
-    while (!_isAtEnd() && _peek() != "'") {
+    while (!_isAtEnd() && _peek() != quote) {
       if (_peek() == '\n') {
         // Neuzavřený řetězec
         return TsToken(
@@ -273,7 +260,7 @@ class TsTokenizer {
           value: null,
           line: tokenLine,
           column: tokenColumn,
-          errorMessage: 'Neuzavřený jednořádkový řetězec',
+          errorMessage: 'Neuzavřený řetězec',
         );
       }
       
@@ -362,7 +349,7 @@ class TsTokenizer {
       );
     }
     
-    text += _advance(); // uzavírací '
+    text += _advance(); // uzavírací uvozovka
     
     return TsToken(
       type: TsTokenType.string,
@@ -370,237 +357,6 @@ class TsTokenizer {
       value: value.toString(),
       line: tokenLine,
       column: tokenColumn,
-    );
-  }
-
-  /// Přečte jednořádkový řetězec se dvojitými uvozovkami (bez escape sekvencí, kromě "")
-  /// Typ 2: "..." - jednořádkový, pouze zdvojené uvozovky pro vložení "
-  TsToken _readDoubleQuoteString(int tokenLine, int tokenColumn) {
-    var text = '';
-    var value = StringBuffer();
-    
-    text += _advance(); // úvodní "
-    
-    while (!_isAtEnd()) {
-      if (_peek() == '\n') {
-        // Neuzavřený řetězec
-        return TsToken(
-          type: TsTokenType.error,
-          text: text,
-          value: null,
-          line: tokenLine,
-          column: tokenColumn,
-          errorMessage: 'Neuzavřený jednořádkový řetězec (nový řádek není povolen)',
-        );
-      }
-      
-      if (_peek() == '"') {
-        text += _advance(); // "
-        // Kontrola na zdvojené uvozovky
-        if (!_isAtEnd() && _peek() == '"') {
-          text += _advance(); // druhá "
-          value.write('"'); // do hodnoty jde pouze jedna "
-        } else {
-          // Konec řetězce
-          return TsToken(
-            type: TsTokenType.string,
-            text: text,
-            value: value.toString(),
-            line: tokenLine,
-            column: tokenColumn,
-          );
-        }
-      } else {
-        var ch = _advance();
-        text += ch;
-        value.write(ch);
-      }
-    }
-    
-    // Neuzavřený řetězec
-    return TsToken(
-      type: TsTokenType.error,
-      text: text,
-      value: null,
-      line: tokenLine,
-      column: tokenColumn,
-      errorMessage: 'Neuzavřený řetězec',
-    );
-  }
-
-  /// Přečte víceřádkový řetězec s trojitými jednoduchými uvozovkami
-  /// Typ 3: '''...''' - víceřádkový s escape sekvencemi včetně Unicode
-  TsToken _readTripleSingleQuoteString(int tokenLine, int tokenColumn) {
-    var text = '';
-    var value = StringBuffer();
-    
-    // Úvodní '''
-    text += _advance(); // '
-    text += _advance(); // '
-    text += _advance(); // '
-    
-    while (!_isAtEnd()) {
-      // Kontrola na uzavírací '''
-      if (_peek() == "'" && _pos + 2 < _source.length &&
-          _source[_pos + 1] == "'" && _source[_pos + 2] == "'") {
-        text += _advance(); // '
-        text += _advance(); // '
-        text += _advance(); // '
-        
-        return TsToken(
-          type: TsTokenType.string,
-          text: text,
-          value: value.toString(),
-          line: tokenLine,
-          column: tokenColumn,
-        );
-      }
-      
-      if (_peek() == '\\') {
-        text += _advance();
-        if (!_isAtEnd()) {
-          var escaped = _advance();
-          text += escaped;
-          
-          // Zpracování escape sekvencí
-          switch (escaped) {
-            case 'n':
-              value.write('\n');
-              break;
-            case 't':
-              value.write('\t');
-              break;
-            case 'r':
-              value.write('\r');
-              break;
-            case '\\':
-              value.write('\\');
-              break;
-            case "'":
-              value.write("'");
-              break;
-            case '"':
-              value.write('"');
-              break;
-            case 'u':
-              // Unicode escape sekvence
-              if (!_isAtEnd() && _peek() == '{') {
-                // \u{...} formát
-                text += _advance(); // {
-                var hexCode = '';
-                while (!_isAtEnd() && _peek() != '}') {
-                  var hexChar = _advance();
-                  text += hexChar;
-                  hexCode += hexChar;
-                }
-                if (!_isAtEnd() && _peek() == '}') {
-                  text += _advance(); // }
-                  try {
-                    var codePoint = int.parse(hexCode, radix: 16);
-                    value.write(String.fromCharCode(codePoint));
-                  } catch (e) {
-                    value.write('\\u{$hexCode}');
-                  }
-                }
-              } else {
-                // \uXXXX formát (4 hex číslice)
-                var hexCode = '';
-                for (int i = 0; i < 4 && !_isAtEnd(); i++) {
-                  var hexChar = _advance();
-                  text += hexChar;
-                  hexCode += hexChar;
-                }
-                try {
-                  var codePoint = int.parse(hexCode, radix: 16);
-                  value.write(String.fromCharCode(codePoint));
-                } catch (e) {
-                  value.write('\\u$hexCode');
-                }
-              }
-              break;
-            default:
-              value.write(escaped);
-          }
-        }
-      } else {
-        var ch = _advance();
-        text += ch;
-        value.write(ch);
-      }
-    }
-    
-    // Neuzavřený řetězec
-    return TsToken(
-      type: TsTokenType.error,
-      text: text,
-      value: null,
-      line: tokenLine,
-      column: tokenColumn,
-      errorMessage: "Neuzavřený víceřádkový řetězec (očekáváno ''')",
-    );
-  }
-
-  /// Přečte víceřádkový řetězec s trojitými dvojitými uvozovkami
-  /// Typ 4: """...""" - víceřádkový, pouze """" pro vložení """
-  TsToken _readTripleDoubleQuoteString(int tokenLine, int tokenColumn) {
-    var text = '';
-    var value = StringBuffer();
-    
-    // Úvodní """
-    text += _advance(); // "
-    text += _advance(); // "
-    text += _advance(); // "
-    
-    while (!_isAtEnd()) {
-      if (_peek() == '"') {
-        text += _advance(); // první "
-        
-        // Kontrola na """" (čtyři uvozovky = reprezentuje """)
-        if (_pos + 2 < _source.length &&
-            _source[_pos] == '"' && 
-            _source[_pos + 1] == '"' && 
-            _source[_pos + 2] == '"') {
-          // Máme """", což reprezentuje """ ve výstupu
-          text += _advance(); // "
-          text += _advance(); // "
-          text += _advance(); // "
-          value.write('"""');
-          continue;
-        }
-        
-        // Kontrola na """ (uzavírací)
-        if (_pos + 1 < _source.length &&
-            _source[_pos] == '"' && 
-            _source[_pos + 1] == '"') {
-          text += _advance(); // "
-          text += _advance(); // "
-          
-          return TsToken(
-            type: TsTokenType.string,
-            text: text,
-            value: value.toString(),
-            line: tokenLine,
-            column: tokenColumn,
-          );
-        }
-        
-        // Pouze jedna ", přidat do hodnoty
-        value.write('"');
-      } else {
-        var ch = _advance();
-        text += ch;
-        value.write(ch);
-      }
-    }
-    
-    // Neuzavřený řetězec
-    return TsToken(
-      type: TsTokenType.error,
-      text: text,
-      value: null,
-      line: tokenLine,
-      column: tokenColumn,
-      errorMessage: 'Neuzavřený víceřádkový řetězec (očekáváno """)',
     );
   }
 

@@ -177,8 +177,119 @@
     END SWITCH
   ```
 
+## Funkce
+
+- Funkce jsou definovány pomocí klíčového slova `FUNC` a končí slovem  `END FUNC`, nebo`END`.
+- Funkce mohou mít volitelné parametry, které jsou definovány za názvem funkce.
+- Blok parametrů může být uzavřen v kulatých závorkách `()` (nepovinné), parametry jsou odděleny čárkou.
+  - Příklad: `FUNC INT myFunction(param1, param2) ... END FUNC`
+  - Případně bez závorek: `FUNC NUM myFunction param1, param2 ... END FUNC`
+- Parametry mohou být jakéhokoli podporovaného typu (NUM, INT, STR, objekt, pole, slovník).
+  - Příklad: `FUNC INT calculateSum(NUM a, NUM b) ... END FUNC`
+  - Příklad: `FUNC STR processData(STR name, myObject data) ... END FUNC`
+- Pokud za funkcí není uveden typ vracené hodnoty, funkce nevrací žádnou hodnotu.
+  - Příklad: `FUNC myProcedure(NUM param1, STR param2) ... END FUNC`
+- Parametry jsou předávány hodnotou (call by value).
+- Objekty jsou předávány odkazem (call by reference).
+- Textové řetězce, pole a slovníky jsou předávány odkazem (call by reference).
+- Funkce mohou vracet hodnotu pomocí klíčového slova `RETURN`.
+  - Příklad: `RETURN result`
+  - Příklad pokud funkce nevrací hodnotu: `RETURN`
+- Typ vracené hodnoty se zapisuje za `FUNC`
+  - Příklad: `FUNC NUM getValue() ... END FUNC`
+  - Příklad: `FUNC STR getText() ... END FUNC`
+- Kompletní příkaz syntaxe pro definici funkce:
+  - `FUNC [type] functionName([param1, param2, ...]) ... END FUNC`
+- Vracená hodnota může být použita v dalších výrazech.
+  - Příklad: `result = myFunction(10, 20) + 5`
+- Vracená hodnota může být ignorována, pokud není potřeba.
+  - Příklad: `myFunction(10, 20)`
+- Pokud za voláním funkce nenásleduje výraz nemusí být parametry v kulatých závorkách.
+  - Příklad: `myFunction param1, param2`
+  - Příklad: `result = myFunction param1, param2`
+- Proměnné definované uvnitř funkce jsou lokální pro tuto funkci.
+
+## Moduly
+
+- TScript podporuje moduly pro organizaci kódu do samostatných souborů.
+- Každý soubor je modulem a může obsahovat definice proměnných a funkcí.
+- Modul začíná klíčovým slovem `MODULE` za může následovat název modulu.
+  - Bez názvu je má modul název podle názvu souboru.
+  - Příklad: `MODULE moduleName`
+- Klíčové slovo `MODULE` není povinné, pokud je název modulu shodný s názvem souboru.
+- Moduly mohou být importovány do jiných modulů pomocí klíčového slova `IMPORT`.
+  - Příklad: `IMPORT "moduleName"`
+- Po importu modulu jsou všechny jeho veřejné funkce a proměnné dostupné v importujícím modulu.
+  - Příklad použití funkce z importovaného modulu: `result = moduleName.functionName(param1, param2)`
+- Za běhu programu existuje pouze jedna instance každého modulu (je singleton).
+
+## Třídy
+
+- Třídy jsou speciální typy modulů.
+- Třídy jsou moduly které mají v záhlaví klíčové slovo `CLASS` místo `MODULE`.
+- Narozdíl od modulu který je singleton, třída může mít více instancí.
+- Instance třídy se vytváří při deklaraci proměnné.
+  - Příklad: `myObject obj`
+
+## Konstruktory modulů a tříd
+
+- Moduly a třídy neobsahují konstruktory. Konstrukci provádí program na hlavní úrovni modulu, nebo třídy.
+
+## Destruktory modulů a tříd
+
+- Moduly a třídy mohou obsahovat destruktory pro uvolnění prostředků při ukončení programu nebo zničení instance třídy.
+- Destruktor je definován jako funkce s názvem `DESTROY` bez parametrů a bez návratového typu.
+  - Příklad:
+
+    ``` TScript
+    FUNC DESTROY
+      # Kód pro uvolnění prostředků
+    END FUNC
+    ```
+
+## Vyjímky
+
+- TScript podporuje zpracování výjimek pomocí klíčových slov `TRY`, `CATCH` a `FINALLY`.
+- Blok `TRY` obsahuje kód, který může vyvolat výjimku.
+- Blok `CATCH` obsahuje kód pro zpracování výjimky, pokud je vyvolána v bloku `TRY`.
+  - Může obsahovat volitelný parametr, který představuje kód výjimky.
+    Příklad: `CATCH system.notOpen`
+  - Blok `CATCH` může zachytit všechny výjimky, pokud není uveden žádný parametr.
+    - Příklad: `CATCH`
+  - Bloků `CATCH` mohou být více pro zachycení různých typů výjimek a jeden blok může obsahovat více typů výjimek oddělených čárkou.
+    - Příklad: `CATCH system.notOpen, system.ioError`
+- Blok `FINALLY` obsahuje kód, který se vždy vykoná po bloku `TRY`, bez ohledu na to, zda byla vyvolána výjimka nebo ne.
+- Kompletní příkaz syntaxe pro zpracování výjimek:
+  - `TRY ... CATCH ... [FINALLY ...] END TRY`
+- Výjimka je vyvolána pomocí klíčového slova `THROW` následovaného kódem výjimky.
+  - Příklad: `THROW system.ioError`
+- Výjimka je v systému reprezentována jako jedinečný kód typu INT.
+- Vyjímky je možno deklarovat v modulu nebo třídě pomocí klíčového slova `EXCEPTION`.
+  - Příklad: `EXCEPTION myException`
+    - Kód výjimky je automaticky přiřazen.
+  - Příklad s explicitním kódem: `EXCEPTION myException = 100`
+    - Takto deklarovaná výjimka se může vyskytnout pouze v definice vestavěného objektu. Běžné objekty jazyka TScript neumožňují definici vlastních kódů výjimek.
+- Ostatní informace o výjimce (např. pozice nebo textový popis) se uchovávají v systému a předpokládá se, že hostitelská aplikace je zpřístupní jazyku TScript pomocí vestavěného objektu. Předpokládá se jednoduchý objekt, který uchovává informace pouze o poslední výjimce.
 
 ## Komentáře
 
 - Podporuje pouze jednořádkové komentáře začínající křížkem `#`:
   - Příklad: `# Toto je komentář`
+
+## Vestavěné objekty
+
+- Vestavěné objekty jsou v jazyce TScript vždy definovány cílovým prostředím (hostitelská aplikace).
+- TScript proto nedefinuje žádné vestavěné objekty sám o sobě.
+- V TScriptu existuje podpora pro definici vestavěných objektů.
+- Vestavěné objekty mohou mít vlastnosti a metody, které jsou přístupné pomocí tečkové notace.
+  - Definice vestavěného začíná klíčovým slovem `INTERNAL MODULE` nebo `INTERNAL CLASS`.
+  - V těle objektu jsou definovány funkce a vlastnosti.
+  - Funkce jsou definovány stejně jako běžné funkce, ale bez těla funkce (pouze hlavička).
+  - Vlastnosti jsou definovány jako proměnné bez inicializace.
+    - Příklad vlastnosti: `NUM propertyName`
+  - Vlastnosti mohou být přístupné pro čtení i zápis, nebo pouze pro čtení pomocí klíčového slova `READONLY`.
+    - Příklad readonly vlastnosti: `READONLY STR propertyName`
+  - Definice vestavěného objektu slouží pouze pro kompilaci skriptu, skutečná implementace je poskytována hostitelskou aplikací.
+
+    Slouží také pro generování interface v jazyce hostitelské aplikace.
+
